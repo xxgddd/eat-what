@@ -1,7 +1,7 @@
 import { useState } from 'react';
 import { format, differenceInDays } from 'date-fns';
 import { useAppStore } from '../store/useAppStore';
-import { FODMAP_META, type FodmapTag, type ExperimentResult } from '../types';
+import { FODMAP_META, FOOD_INVESTIGATION_META, type FodmapTag, type ExperimentResult } from '../types';
 
 const TODAY = format(new Date(), 'yyyy-MM-dd');
 
@@ -22,6 +22,7 @@ export function LabTab() {
   const completed = store.experiments.filter((e) => e.status === 'completed');
   const [showArchive, setShowArchive] = useState(false);
   const [showCreate, setShowCreate] = useState(false);
+  const [investigationFood, setInvestigationFood] = useState<FodmapTag | null>(null);
 
   return (
     <div className="scroll-area">
@@ -31,7 +32,7 @@ export function LabTab() {
         <div>
           <h1 className="text-2xl font-extrabold text-ink">实验室</h1>
           <p className="text-sm text-ink-muted mt-1">
-            用排除法找出你的食物诱因 🔬
+            跟身体谈谈判，找出你的饮食真相 🔬
           </p>
         </div>
 
@@ -68,7 +69,9 @@ export function LabTab() {
                           {meta.emoji}
                         </div>
                         <div className="flex-1">
-                          <p className="font-bold text-ink">戒掉 {meta.label}</p>
+                          <p className="font-bold text-ink">
+                            {exp.strategy === 'substitution' ? '替换' : '戒断'} {meta.label}
+                          </p>
                           <p className="text-xs text-ink-muted mt-0.5">
                             第 {progress + 1} 天 / 共 {exp.durationDays} 天
                           </p>
@@ -151,13 +154,21 @@ export function LabTab() {
                           {danger ? '🔴' : '🟡'} {count} 次异常关联
                         </p>
                       </div>
-                      <button
-                        id={`start-exp-${food}`}
-                        onClick={() => store.createExperiment(food, 7, true)}
-                        className="pill pill-green text-xs px-3 py-2"
-                      >
-                        开始实验
-                      </button>
+                      <div className="flex flex-col gap-1.5 ml-2">
+                        <button
+                          id={`investigate-${food}`}
+                          onClick={() => setInvestigationFood(food)}
+                          className="pill pill-green text-xs px-3 py-1.5"
+                        >
+                          查个明白
+                        </button>
+                        <button
+                          onClick={() => store.toggleSafeFood(food)}
+                          className="w-full py-1 text-[10px] text-ink-muted hover:text-green-dark border border-ivory-300 rounded-[10px] transition-colors"
+                        >
+                          赦免(白名单)
+                        </button>
+                      </div>
                     </div>
                   );
                 })}
@@ -226,8 +237,39 @@ export function LabTab() {
           </section>
         )}
 
+        {/* ── Whitelist ── */}
+        {(store.profile.safeFoods?.length || 0) > 0 && (
+          <section>
+            <p className="section-title mb-3">安全白名单 (不会被怀疑)</p>
+            <div className="flex flex-wrap gap-2">
+              {store.profile.safeFoods?.map((f) => {
+                const meta = FODMAP_META[f];
+                return (
+                  <button
+                    key={f}
+                    onClick={() => store.toggleSafeFood(f)}
+                    className="px-3 py-1.5 bg-ivory-100 border-2 border-dashed border-ivory-300 rounded-xl text-xs font-semibold text-ink-muted hover:border-terra-light hover:text-terra hover:bg-terra-pale transition-all flex items-center group"
+                    title="点击移出白名单"
+                  >
+                    <span className="opacity-50 group-hover:opacity-100 grayscale group-hover:grayscale-0 transition-all mr-1.5">{meta.emoji}</span> 
+                    {meta.label} 
+                    <span className="opacity-0 group-hover:opacity-100 ml-1 text-terra">✕</span>
+                  </button>
+                );
+              })}
+            </div>
+          </section>
+        )}
+
         <div className="h-4" />
       </div>
+
+      {investigationFood && (
+        <InvestigationModal
+          food={investigationFood}
+          onClose={() => setInvestigationFood(null)}
+        />
+      )}
     </div>
   );
 }
@@ -267,6 +309,86 @@ const ALL_FOODS: FodmapTag[] = [
   'soy', 'alcohol', 'coffee', 'fatty', 'garlic', 'fructose',
 ];
 
+function InvestigationModal({
+  food,
+  onClose,
+}: {
+  food: FodmapTag;
+  onClose: () => void;
+}) {
+  const meta = FODMAP_META[food];
+  const plan = FOOD_INVESTIGATION_META[food];
+  const { createExperiment } = useAppStore();
+
+  const start = (strategy: 'substitution' | 'exclusion') => {
+    createExperiment(food, strategy === 'substitution' ? 5 : 7, true, strategy);
+    onClose();
+  };
+
+  return (
+    <div className="fixed inset-0 z-50 flex items-end sm:items-center justify-center p-4 bg-black/20 backdrop-blur-sm animate-fade-in">
+      <div className="bg-white w-full max-w-md rounded-[32px] overflow-hidden shadow-2xl animate-slide-up">
+        <div className="p-6">
+          <div className="flex items-center gap-4 mb-6">
+            <div className="w-14 h-14 bg-ivory-100 rounded-2xl flex items-center justify-center text-3xl">
+              {meta.emoji}
+            </div>
+            <div>
+              <h2 className="text-xl font-extrabold text-ink">侦探调查：{meta.label}</h2>
+              <p className="text-xs text-ink-muted">针对近期高频关联不适进行的排查</p>
+            </div>
+          </div>
+
+          <div className="bg-green-pale/30 rounded-2xl p-4 mb-6">
+            <p className="text-xs font-bold text-green-dark uppercase tracking-wider mb-1">
+              侦探情报
+            </p>
+            <p className="text-sm text-ink leading-relaxed">
+              {plan?.reason ?? '该食物近期多次出现在你的不适记录中。'}
+            </p>
+          </div>
+
+          <p className="text-xs font-bold text-ink-muted uppercase tracking-wider mb-3 px-1">
+            选择调查策略
+          </p>
+          
+          <div className="space-y-3">
+            <button
+              onClick={() => start('substitution')}
+              className="w-full text-left p-4 rounded-2xl border-2 border-ivory-200 hover:border-green-primary transition-all group"
+            >
+              <div className="flex items-center justify-between mb-1">
+                <span className="font-bold text-ink group-hover:text-green-dark">方案 A: 温和替换 (推荐)</span>
+                <span className="text-[10px] bg-green-pale text-green-dark px-2 py-0.5 rounded-full font-bold">易坚持</span>
+              </div>
+              <p className="text-xs text-ink font-semibold">{plan?.substitution.label}</p>
+              <p className="text-[10px] text-ink-muted mt-0.5">{plan?.substitution.description}</p>
+            </button>
+
+            <button
+              onClick={() => start('exclusion')}
+              className="w-full text-left p-4 rounded-2xl border-2 border-ivory-200 hover:border-terra-light transition-all group"
+            >
+              <div className="flex items-center justify-between mb-1">
+                <span className="font-bold text-ink group-hover:text-terra">方案 B: 彻底排除 (严格)</span>
+              </div>
+              <p className="text-xs text-ink font-semibold">{plan?.exclusion.label}</p>
+              <p className="text-[10px] text-ink-muted mt-0.5">{plan?.exclusion.description}</p>
+            </button>
+          </div>
+
+          <button
+            onClick={onClose}
+            className="w-full mt-6 py-4 text-xs font-bold text-ink-muted hover:text-ink transition-colors"
+          >
+            先不查这个
+          </button>
+        </div>
+      </div>
+    </div>
+  );
+}
+
 function CreateExperimentPanel({
   onCreated,
   existingFoods,
@@ -277,17 +399,18 @@ function CreateExperimentPanel({
   const { createExperiment } = useAppStore();
   const [food, setFood] = useState<FodmapTag | null>(null);
   const [days, setDays] = useState(7);
+  const [strategy, setStrategy] = useState<'substitution' | 'exclusion'>('exclusion');
 
   const submit = () => {
     if (!food) return;
-    createExperiment(food, days, false);
+    createExperiment(food, days, false, strategy);
     onCreated();
   };
 
   return (
     <div className="card mt-3 space-y-4 animate-fade-up">
       <div>
-        <p className="section-title mb-2">选择要排除的食物</p>
+        <p className="section-title mb-2">选择调查目标</p>
         <div className="flex flex-wrap gap-2">
           {ALL_FOODS.filter((f) => !existingFoods.includes(f)).map((f) => {
             const meta = FODMAP_META[f];
@@ -303,6 +426,34 @@ function CreateExperimentPanel({
           })}
         </div>
       </div>
+
+      {food && (
+        <div className="space-y-3 animate-fade-in">
+          <p className="section-title mb-1">选择策略</p>
+          <div className="flex gap-2">
+            <button
+              className={`flex-1 py-3 px-2 rounded-xl border-2 text-[10px] font-bold transition-all
+                ${strategy === 'substitution' ? 'border-green-primary bg-green-pale text-green-dark' : 'border-ivory-200 text-ink-muted'}`}
+              onClick={() => setStrategy('substitution')}
+            >
+              温和替换
+            </button>
+            <button
+              className={`flex-1 py-3 px-2 rounded-xl border-2 text-[10px] font-bold transition-all
+                ${strategy === 'exclusion' ? 'border-terra-light bg-terra-pale text-terra' : 'border-ivory-200 text-ink-muted'}`}
+              onClick={() => setStrategy('exclusion')}
+            >
+              彻底排除
+            </button>
+          </div>
+          <p className="text-[10px] text-ink-muted leading-relaxed px-1 italic">
+            {strategy === 'substitution' 
+              ? `温和：${FOOD_INVESTIGATION_META[food]?.substitution.label}`
+              : `严格：${FOOD_INVESTIGATION_META[food]?.exclusion.label}`
+            }
+          </p>
+        </div>
+      )}
 
       <div>
         <p className="section-title mb-2">实验天数</p>
@@ -328,7 +479,7 @@ function CreateExperimentPanel({
             : 'bg-ivory-200 text-ink-muted cursor-not-allowed'
           }`}
       >
-        {food ? `开始戒 ${FODMAP_META[food].emoji} ${FODMAP_META[food].label}` : '请先选择食物'}
+        {food ? `开始调查 ${FODMAP_META[food].emoji} ${FODMAP_META[food].label}` : '请先选择食物'}
       </button>
     </div>
   );

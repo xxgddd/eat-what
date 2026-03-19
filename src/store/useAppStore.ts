@@ -11,6 +11,7 @@ import type {
   FodmapTag,
   DayStatus,
   ExperimentResult,
+  InvestigationStrategy,
 } from '../types';
 
 // ─── Helper ────────────────────────────────────────────────────────────────────
@@ -24,6 +25,8 @@ const emptyDay = (date: string): DayRecord => ({
   meals: [],
   externalFactors: [],
   aiConclusion: null,
+  aiMascotComment: null,
+  analysisKey: null,
   isMenstrual: false,
 });
 
@@ -37,6 +40,7 @@ interface AppState {
   // Profile actions
   setProfile: (p: Partial<UserProfile>) => void;
   completeOnboarding: () => void;
+  toggleSafeFood: (food: FodmapTag) => void;
 
   // Day record actions
   getOrCreateDay: (date?: string) => DayRecord;
@@ -46,11 +50,12 @@ interface AppState {
   upsertMeal: (date: string, meal: Meal) => void;
   removeMeal: (date: string, mealId: string) => void;
   addExternalFactor: (date: string, factor: ExternalFactor) => void;
-  setAiConclusion: (date: string, text: string) => void;
+  setAiAnalysis: (date: string, conclusion: string, mascotComment: string, key: string) => void;
   setMenstrual: (date: string, val: boolean) => void;
+  deleteDay: (date: string) => void;
 
   // Experiment actions
-  createExperiment: (food: FodmapTag, durationDays?: number, aiSuggested?: boolean) => void;
+  createExperiment: (food: FodmapTag, durationDays?: number, aiSuggested?: boolean, strategy?: InvestigationStrategy) => void;
   updateExperimentStatus: (id: string, status: Experiment['status']) => void;
   finishExperiment: (id: string, result: ExperimentResult) => void;
   syncExperimentDayLogs: () => void;
@@ -72,6 +77,7 @@ export const useAppStore = create<AppState>()(
         trackMenstrual: false,
         cycleLength: 28,
         onboardingDone: false,
+        safeFoods: [],
       },
       records: {},
       experiments: [],
@@ -82,6 +88,13 @@ export const useAppStore = create<AppState>()(
 
       completeOnboarding: () =>
         set((s) => ({ profile: { ...s.profile, onboardingDone: true } })),
+        
+      toggleSafeFood: (food) =>
+        set((s) => {
+          const safe = s.profile.safeFoods || [];
+          const newSafe = safe.includes(food) ? safe.filter(f => f !== food) : [...safe, food];
+          return { profile: { ...s.profile, safeFoods: newSafe } };
+        }),
 
       // ── Day record ─────────────────────────────────────────────────────────
       getOrCreateDay: (date = today()) => {
@@ -157,10 +170,15 @@ export const useAppStore = create<AppState>()(
           };
         }),
 
-      setAiConclusion: (date, text) =>
+      setAiAnalysis: (date, conclusion, mascotComment, key) =>
         set((s) => {
           const rec = s.records[date] ?? emptyDay(date);
-          return { records: { ...s.records, [date]: { ...rec, aiConclusion: text } } };
+          return {
+            records: {
+              ...s.records,
+              [date]: { ...rec, aiConclusion: conclusion, aiMascotComment: mascotComment, analysisKey: key },
+            },
+          };
         }),
 
       setMenstrual: (date, val) =>
@@ -169,8 +187,15 @@ export const useAppStore = create<AppState>()(
           return { records: { ...s.records, [date]: { ...rec, isMenstrual: val } } };
         }),
 
+      deleteDay: (date) =>
+        set((s) => {
+          const newRecords = { ...s.records };
+          delete newRecords[date];
+          return { records: newRecords };
+        }),
+
       // ── Experiments ────────────────────────────────────────────────────────
-      createExperiment: (food, durationDays = 7, aiSuggested = false) => {
+      createExperiment: (food, durationDays = 7, aiSuggested = false, strategy = 'substitution') => {
         const active = get().experiments.filter((e) => e.status === 'active');
         if (active.length >= 2) return; // max 2 concurrent
         const id = `exp-${Date.now()}`;
@@ -181,6 +206,7 @@ export const useAppStore = create<AppState>()(
           startDate,
           durationDays,
           status: 'active',
+          strategy,
           dailyLog: [],
           aiSuggested,
         };
@@ -229,12 +255,14 @@ export const useAppStore = create<AppState>()(
 
       suspectFoods: () => {
         const records = Object.values(get().records);
+        const safeFoods = get().profile.safeFoods || [];
         const counts: Partial<Record<FodmapTag, number>> = {};
         for (const rec of records) {
           if (rec.status !== 'bad') continue;
           const tags = rec.meals.flatMap((m) => m.tags);
           const unique = [...new Set(tags)] as FodmapTag[];
           for (const tag of unique) {
+            if (safeFoods.includes(tag)) continue;
             counts[tag] = (counts[tag] ?? 0) + 1;
           }
         }

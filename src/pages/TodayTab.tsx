@@ -9,7 +9,7 @@ import { SymptomPicker } from '../components/SymptomPicker';
 import { MealLogger } from '../components/MealLogger';
 import { FollowUpQuestion } from '../components/FollowUpQuestion';
 
-const TODAY = format(new Date(), 'yyyy-MM-dd');
+const REAL_TODAY = format(new Date(), 'yyyy-MM-dd');
 const MEAL_ORDER: MealType[] = ['breakfast', 'lunch', 'dinner', 'snack'];
 
 // ── AI trigger debounce ──────────────────────────────────────────────────────
@@ -27,7 +27,8 @@ function useDebounce<T>(value: T, ms: number): T {
 
 export function TodayTab() {
   const store = useAppStore();
-  const today = store.records[TODAY] ?? store.getOrCreateDay(TODAY);
+  const [viewDate, setViewDate] = useState(REAL_TODAY);
+  const today = store.records[viewDate] ?? store.getOrCreateDay(viewDate);
 
   const [openMeal, setOpenMeal] = useState<MealType | null>(null);
   const [isAnalyzing, setIsAnalyzing] = useState(false);
@@ -45,14 +46,16 @@ export function TodayTab() {
       : 'idle';
 
   const mascotSpeech: string | null = isAnalyzing
-    ? '分析中...'
+    ? '正在全速脑补你的肠胃现场...'
+    : today.aiMascotComment
+    ? today.aiMascotComment
     : today.aiConclusion
-    ? today.aiConclusion
+    ? today.aiConclusion // fallback
     : today.status === null
-    ? '今天怎么样？'
+    ? '今天打算给肠胃君安排点啥？🤔'
     : today.status === 'bad'
-    ? '不舒服？我来帮你找原因 🔍'
-    : '太棒了！记一下今天吃了什么吧 ✨';
+    ? '看来刚才那顿饭不太对劲，我来抓真凶 🔍'
+    : '状态不错！是乖乖吃草了还是今天运气好？✨';
 
   // ── Trigger AI analysis ────────────────────────────────────────────────────
 
@@ -67,23 +70,23 @@ export function TodayTab() {
   const runAnalysis = useCallback(async () => {
     if (today.status === null) return;
     if (today.meals.length === 0 && today.status === 'good') return;
+    if (today.analysisKey === debouncedKey) return;
     if (aiTriggeredRef.current === debouncedKey) return;
     aiTriggeredRef.current = debouncedKey;
 
     setIsAnalyzing(true);
     try {
       const records = store.recentRecords(14);
-      const yesterday = records.find(
-        (r) => r.date === format(new Date(Date.now() - 86400000), 'yyyy-MM-dd')
-      ) ?? null;
-      const history = records.filter((r) => r.date !== TODAY);
-      const conclusion = await analyzeDay(today, yesterday, history, store.experiments);
-      store.setAiConclusion(TODAY, conclusion);
+      const yesterdayDate = format(new Date(new Date(viewDate).getTime() - 86400000), 'yyyy-MM-dd');
+      const yesterday = records.find((r) => r.date === yesterdayDate) ?? null;
+      const history = records.filter((r) => r.date !== viewDate);
+      const result = await analyzeDay(today, yesterday, history, store.experiments, store.profile.safeFoods);
+      store.setAiAnalysis(viewDate, result.formal, result.witty, debouncedKey);
       store.syncExperimentDayLogs();
     } finally {
       setIsAnalyzing(false);
     }
-  }, [debouncedKey]); // eslint-disable-line
+  }, [debouncedKey, viewDate]); // eslint-disable-line
 
   useEffect(() => {
     runAnalysis();
@@ -92,14 +95,23 @@ export function TodayTab() {
   // ── Handlers ───────────────────────────────────────────────────────────────
 
   const setStatus = (s: DayStatus) => {
-    store.setDayStatus(TODAY, s);
+    store.setDayStatus(viewDate, s);
     setFollowUpDismissed(false);
     aiTriggeredRef.current = '';
   };
 
   // ── Date display ───────────────────────────────────────────────────────────
 
-  const dateLabel = format(new Date(), 'M月d日 EEEE', { locale: zhCN });
+  const dateLabel = format(new Date(viewDate + 'T00:00:00'), 'M月d日 EEEE', { locale: zhCN });
+  const isToday = viewDate === REAL_TODAY;
+
+  const changeDate = (offset: number) => {
+    const d = new Date(viewDate + 'T00:00:00');
+    d.setDate(d.getDate() + offset);
+    setViewDate(format(d, 'yyyy-MM-dd'));
+    setFollowUpDismissed(false);
+    aiTriggeredRef.current = '';
+  };
 
   // ── Render ─────────────────────────────────────────────────────────────────
 
@@ -110,10 +122,52 @@ export function TodayTab() {
         {/* ── Header ── */}
         <div className="flex items-start justify-between">
           <div>
-            <p className="text-xs font-bold text-ink-muted uppercase tracking-widest">
-              {dateLabel}
-            </p>
-            <h1 className="text-2xl font-extrabold text-ink mt-0.5">今日追踪</h1>
+            <div className="flex items-center gap-2">
+              <label className="relative cursor-pointer group">
+                <p className="text-xs font-bold text-ink-muted uppercase tracking-widest group-hover:text-green-primary transition-colors">
+                  {dateLabel} ▾
+                </p>
+                <input
+                  type="date"
+                  className="absolute inset-0 opacity-0 cursor-pointer"
+                  value={viewDate}
+                  onChange={(e) => {
+                    if (e.target.value) {
+                      setViewDate(e.target.value);
+                      setFollowUpDismissed(false);
+                      aiTriggeredRef.current = '';
+                    }
+                  }}
+                  max={REAL_TODAY}
+                />
+              </label>
+              {!isToday && (
+                <span className="text-[10px] bg-terra-pale text-terra px-1.5 py-0.5 rounded-md font-bold">
+                  补录中
+                </span>
+              )}
+            </div>
+            <div className="flex items-center gap-3 mt-0.5">
+              <h1 className="text-2xl font-extrabold text-ink">
+                {isToday ? '今日追踪' : '追踪记录'}
+              </h1>
+              <div className="flex gap-1 bg-ivory-200 p-1 rounded-xl">
+                <button
+                  onClick={() => changeDate(-1)}
+                  className="w-8 h-8 flex items-center justify-center rounded-lg hover:bg-white transition-colors"
+                >
+                  <span className="text-sm">◀</span>
+                </button>
+                <button
+                  onClick={() => changeDate(1)}
+                  disabled={isToday}
+                  className={`w-8 h-8 flex items-center justify-center rounded-lg transition-colors
+                    ${isToday ? 'opacity-30' : 'hover:bg-white'}`}
+                >
+                  <span className="text-sm">▶</span>
+                </button>
+              </div>
+            </div>
           </div>
           <Mascot mood={mascotMood} speech={mascotSpeech} size="sm" />
         </div>
@@ -153,7 +207,7 @@ export function TodayTab() {
           {/* Symptom picker — expands when bad */}
           {today.status === 'bad' && (
             <div className="mt-4 pt-4 border-t border-ivory-300">
-              <SymptomPicker date={TODAY} />
+              <SymptomPicker date={viewDate} />
             </div>
           )}
         </div>
@@ -161,7 +215,7 @@ export function TodayTab() {
         {/* ── Follow-up question ── */}
         {!followUpDismissed && today.status === 'bad' && (
           <FollowUpQuestion
-            date={TODAY}
+            date={viewDate}
             onAnswered={() => setFollowUpDismissed(true)}
           />
         )}
@@ -276,7 +330,7 @@ export function TodayTab() {
       {/* ── Meal logger bottom sheet ── */}
       {openMeal && (
         <MealLogger
-          date={TODAY}
+          date={viewDate}
           mealType={openMeal}
           existingMeal={today.meals.find((m) => m.type === openMeal)}
           onClose={() => {
@@ -285,6 +339,14 @@ export function TodayTab() {
           }}
         />
       )}
+
+      {/* ── Scientific footer ── */}
+      <footer className="px-6 py-8 text-center">
+        <p className="text-[10px] text-ink-muted leading-relaxed max-w-[240px] mx-auto opacity-60">
+          基于 Monash 大学 FODMAP 理论及 IBS 肠道管理实践<br />
+          数据存储在本地，AI 分析由 DeepSeek 提供技术支持
+        </p>
+      </footer>
     </div>
   );
 }

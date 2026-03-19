@@ -26,7 +26,7 @@ export function BottomNav({ activeTab, onTabChange }: BottomNavProps) {
           onClick={() => onTabChange('today')}
           aria-label="今日"
         >
-          <span className="text-2xl leading-none">🫃</span>
+          <span className="text-2xl leading-none">🕵️</span>
         </button>
         <span
           className={`text-[10px] font-bold mt-1 transition-colors ${

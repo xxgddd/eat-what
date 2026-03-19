@@ -10,7 +10,7 @@ interface MascotProps {
 }
 
 const MOOD_EMOJI: Record<MascotMood, string> = {
-  idle:        '🫃',
+  idle:        '🕵️',
   happy:       '🥳',
   concerned:   '😟',
   thinking:    '🤔',

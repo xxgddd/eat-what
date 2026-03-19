@@ -103,6 +103,11 @@ export function HistoryTab() {
                   onToggle={() =>
                     setExpanded(expanded === rec.date ? null : rec.date)
                   }
+                  onDelete={() => {
+                    if (window.confirm(`确定删除 ${rec.date} 的记录吗？`)) {
+                      store.deleteDay(rec.date);
+                    }
+                  }}
                 />
               ))}
             </div>
@@ -121,10 +126,12 @@ function DayCard({
   record,
   isExpanded,
   onToggle,
+  onDelete,
 }: {
   record: DayRecord;
   isExpanded: boolean;
   onToggle: () => void;
+  onDelete: () => void;
 }) {
   const date = new Date(record.date + 'T00:00:00');
   const dateLabel = format(date, 'M月d日', { locale: zhCN });
@@ -146,13 +153,24 @@ function DayCard({
       onClick={onToggle}
     >
       {/* Summary row */}
-      <div className="px-4 py-4">
+      <div className="px-4 py-4 relative group">
+        <button
+          className="absolute top-2 right-2 w-6 h-6 flex items-center justify-center text-ink-muted hover:text-terra hover:bg-terra-pale rounded-full opacity-0 group-hover:opacity-100 transition-all sm:opacity-100"
+          onClick={(e) => {
+            e.stopPropagation();
+            onDelete();
+          }}
+          title="删除这条记录"
+        >
+          ✕
+        </button>
+
         <div className="flex items-start gap-3">
           <div>
             <p className="text-base font-extrabold text-ink">{dateLabel}</p>
             <p className="text-xs text-ink-muted">{dayLabel}</p>
           </div>
-          <span className="text-xl ml-auto">{statusEmoji}</span>
+          <span className="text-xl ml-auto mr-4">{statusEmoji}</span>
         </div>
 
         {/* Tags */}

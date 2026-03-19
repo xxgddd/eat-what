@@ -23,7 +23,7 @@ export default function App() {
   return (
     <div className="app-shell">
       {/* Page content */}
-      <div className="flex-1 relative overflow-hidden">
+      <div className="flex-1 relative flex flex-col overflow-hidden">
         {activeTab === 'today'   && <TodayTab />}
         {activeTab === 'lab'     && <LabTab />}
         {activeTab === 'history' && <HistoryTab />}
