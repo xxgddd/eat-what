@@ -29,11 +29,19 @@ jobs:
         env:
           VITE_SILICONFLOW_API_KEY: ${{ secrets.VITE_SILICONFLOW_API_KEY }}
 
+      - name: Create Cloudflare Pages Project (If not exists)
+        continue-on-error: true
+        run: npx wrangler pages project create gut-detective-app --production-branch main
+        env:
+          CLOUDFLARE_API_KEY: ${{ secrets.CLOUDFLARE_API_KEY }}
+          CLOUDFLARE_EMAIL: ${{ secrets.CLOUDFLARE_EMAIL }}
+          CLOUDFLARE_ACCOUNT_ID: ${{ secrets.CLOUDFLARE_ACCOUNT_ID }}
+
       - name: Deploy to Cloudflare Pages
         uses: cloudflare/wrangler-action@v3
         with:
           accountId: ${{ secrets.CLOUDFLARE_ACCOUNT_ID }}
-          command: pages deploy dist --project-name eat-what
+          command: pages deploy dist --project-name gut-detective-app
         env:
           CLOUDFLARE_API_KEY: ${{ secrets.CLOUDFLARE_API_KEY }}
           CLOUDFLARE_EMAIL: ${{ secrets.CLOUDFLARE_EMAIL }}
