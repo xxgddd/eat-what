@@ -10,14 +10,14 @@ export default function App() {
   const { profile } = useAppStore();
   const [activeTab, setActiveTab] = useState<Tab>('today');
 
-  // ── Onboarding gate ──────────────────────────────────────────────────────
-  if (!profile.onboardingDone) {
-    return (
-      <div className="app-shell">
-        <Onboarding />
-      </div>
-    );
-  }
+  // ── Onboarding gate (临时关闭 — Figma fetch 用) ─────────────────────────
+  // if (!profile.onboardingDone) {
+  //   return (
+  //     <div className="app-shell">
+  //       <Onboarding />
+  //     </div>
+  //   );
+  // }
 
   // ── Main app ─────────────────────────────────────────────────────────────
   return (
