@@ -117,14 +117,14 @@ export function TodayTab() {
 
   return (
     <div className="scroll-area">
-      <div className="px-4 pt-6 space-y-4">
+      <div className="px-5 pt-7 space-y-5">
 
         {/* ── Header ── */}
         <div className="flex items-start justify-between">
           <div>
             <div className="flex items-center gap-2">
               <label className="relative cursor-pointer group">
-                <p className="text-xs font-bold text-ink-muted uppercase tracking-widest group-hover:text-green-primary transition-colors">
+                <p className="text-[11px] font-bold text-[#A09A92] uppercase tracking-[0.12em] group-hover:text-green-primary transition-colors">
                   {dateLabel} ▾
                 </p>
                 <input
@@ -142,29 +142,29 @@ export function TodayTab() {
                 />
               </label>
               {!isToday && (
-                <span className="text-[10px] bg-terra-pale text-terra px-1.5 py-0.5 rounded-md font-bold">
+                <span className="text-[10px] bg-terra-pale text-terra px-2 py-0.5 rounded-lg font-bold">
                   补录中
                 </span>
               )}
             </div>
-            <div className="flex items-center gap-3 mt-0.5">
-              <h1 className="text-2xl font-extrabold text-ink">
+            <div className="flex items-center gap-3 mt-1">
+              <h1 className="text-[1.65rem] font-extrabold text-[#1A1A1A] tracking-tight">
                 {isToday ? '今日追踪' : '追踪记录'}
               </h1>
-              <div className="flex gap-1 bg-ivory-200 p-1 rounded-xl">
+              <div className="flex gap-0.5 bg-[#EFEBE3] p-1 rounded-xl">
                 <button
                   onClick={() => changeDate(-1)}
-                  className="w-8 h-8 flex items-center justify-center rounded-lg hover:bg-white transition-colors"
+                  className="w-8 h-8 flex items-center justify-center rounded-[10px] hover:bg-white/80 active:scale-90 transition-all"
                 >
-                  <span className="text-sm">◀</span>
+                  <span className="text-xs text-[#8A8580]">◀</span>
                 </button>
                 <button
                   onClick={() => changeDate(1)}
                   disabled={isToday}
-                  className={`w-8 h-8 flex items-center justify-center rounded-lg transition-colors
-                    ${isToday ? 'opacity-30' : 'hover:bg-white'}`}
+                  className={`w-8 h-8 flex items-center justify-center rounded-[10px] transition-all
+                    ${isToday ? 'opacity-25' : 'hover:bg-white/80 active:scale-90'}`}
                 >
-                  <span className="text-sm">▶</span>
+                  <span className="text-xs text-[#8A8580]">▶</span>
                 </button>
               </div>
             </div>
@@ -174,39 +174,39 @@ export function TodayTab() {
 
         {/* ── Status picker ── */}
         <div className="card">
-          <p className="section-title mb-3">今天感觉怎么样？</p>
+          <p className="section-title">今天感觉怎么样？</p>
           <div className="flex gap-3">
             <button
               id="status-good"
               onClick={() => setStatus('good')}
-              className={`flex-1 py-4 rounded-2xl flex flex-col items-center gap-1 border-2
-                          transition-all active:scale-95 font-bold
+              className={`flex-1 py-5 rounded-[18px] flex flex-col items-center gap-1.5
+                          transition-all duration-200 active:scale-[0.96] font-bold
                           ${today.status === 'good'
-                            ? 'status-good border-green-primary'
-                            : 'border-ivory-300 bg-ivory-100 text-ink-secondary hover:border-green-light'
+                            ? 'status-good'
+                            : 'border-[1.5px] border-[#E5E0D8] bg-[#FAFAF8] text-[#8A8580] hover:border-green-light hover:bg-green-pale/30'
                           }`}
             >
-              <span className="text-2xl">✅</span>
-              <span className="text-sm">没事</span>
+              <span className="text-2xl">{today.status === 'good' ? '😊' : '✅'}</span>
+              <span className="text-[13px]">没事</span>
             </button>
             <button
               id="status-bad"
               onClick={() => setStatus('bad')}
-              className={`flex-1 py-4 rounded-2xl flex flex-col items-center gap-1 border-2
-                          transition-all active:scale-95 font-bold
+              className={`flex-1 py-5 rounded-[18px] flex flex-col items-center gap-1.5
+                          transition-all duration-200 active:scale-[0.96] font-bold
                           ${today.status === 'bad'
-                            ? 'status-bad border-terra'
-                            : 'border-ivory-300 bg-ivory-100 text-ink-secondary hover:border-terra-light'
+                            ? 'status-bad'
+                            : 'border-[1.5px] border-[#E5E0D8] bg-[#FAFAF8] text-[#8A8580] hover:border-terra-light hover:bg-terra-pale/30'
                           }`}
             >
-              <span className="text-2xl">🚨</span>
-              <span className="text-sm">有问题</span>
+              <span className="text-2xl">{today.status === 'bad' ? '😣' : '🤕'}</span>
+              <span className="text-[13px]">有问题</span>
             </button>
           </div>
 
           {/* Symptom picker — expands when bad */}
           {today.status === 'bad' && (
-            <div className="mt-4 pt-4 border-t border-ivory-300">
+            <div className="mt-5 pt-5 border-t border-[#F0EBE3]">
               <SymptomPicker date={viewDate} />
             </div>
           )}
@@ -222,7 +222,7 @@ export function TodayTab() {
 
         {/* ── Meal timeline ── */}
         <div className="card">
-          <p className="section-title mb-3">今日餐次</p>
+          <p className="section-title">今日餐次</p>
           <div className="space-y-1">
             {MEAL_ORDER.map((mealType, idx) => {
               const meta = MEAL_META[mealType];
@@ -233,8 +233,8 @@ export function TodayTab() {
                 <div key={mealType}>
                   <button
                     id={`meal-${mealType}`}
-                    className="w-full flex items-center gap-3 py-3 rounded-2xl px-2
-                               hover:bg-ivory-100 active:scale-[0.98] transition-all text-left"
+                    className="w-full flex items-center gap-3 py-3.5 rounded-[16px] px-2
+                               hover:bg-[#F6F2EC]/60 active:scale-[0.98] transition-all text-left group"
                     onClick={() => setOpenMeal(mealType)}
                   >
                     {/* Timeline dot */}
@@ -245,40 +245,40 @@ export function TodayTab() {
 
                     {/* Meal icon */}
                     <div
-                      className={`w-10 h-10 rounded-[12px] flex items-center justify-center text-xl flex-shrink-0
-                                  ${meal ? 'bg-green-pale' : 'bg-ivory-200'}`}
+                      className={`w-11 h-11 rounded-[14px] flex items-center justify-center text-xl flex-shrink-0 transition-all
+                                  ${meal ? 'bg-[#E2EDDF] shadow-sm' : 'bg-[#EFEBE3]'}`}
                     >
                       {meta.emoji}
                     </div>
 
                     {/* Content */}
                     <div className="flex-1 min-w-0">
-                      <p className="text-sm font-semibold text-ink">{meta.label}</p>
+                      <p className="text-[13px] font-bold text-[#1A1A1A]">{meta.label}</p>
                       {meal && meal.tags.length > 0 ? (
-                        <div className="flex flex-wrap gap-1 mt-1">
+                        <div className="flex flex-wrap gap-1 mt-1.5">
                           {meal.tags.slice(0, 4).map((tag) => (
                             <span
                               key={tag}
-                              className="text-xs bg-green-pale text-green-dark px-2 py-0.5 rounded-full font-medium"
+                              className="text-[11px] bg-[#E2EDDF] text-[#2E5638] px-2 py-0.5 rounded-lg font-semibold"
                             >
                               {FODMAP_META[tag].emoji} {FODMAP_META[tag].label}
                             </span>
                           ))}
                           {meal.tags.length > 4 && (
-                            <span className="text-xs text-ink-muted">
+                            <span className="text-[11px] text-[#B0AAA2]">
                               +{meal.tags.length - 4}
                             </span>
                           )}
                         </div>
                       ) : (
-                        <p className="text-xs text-ink-muted mt-0.5">
+                        <p className="text-[11px] text-[#B0AAA2] mt-0.5 font-medium">
                           {meal ? '已记录（无标签）' : '点击记录'}
                         </p>
                       )}
                     </div>
 
                     {/* Arrow */}
-                    <span className="text-ink-muted text-sm">›</span>
+                    <span className="text-[#C8C2B8] text-sm group-hover:text-[#8A8580] transition-colors">›</span>
                   </button>
                 </div>
               );
@@ -289,15 +289,17 @@ export function TodayTab() {
         {/* ── AI analysis card ── */}
         {(today.status !== null || today.aiConclusion) && (
           <div className="ai-card animate-fade-up">
-            <div className="flex items-center gap-2 mb-2">
-              <span className="text-base">🤖</span>
-              <p className="text-xs font-bold text-green-dark uppercase tracking-wide">
+            <div className="flex items-center gap-2 mb-3">
+              <div className="w-6 h-6 rounded-[8px] bg-[#4A7C59]/10 flex items-center justify-center">
+                <span className="text-xs">🔍</span>
+              </div>
+              <p className="text-[11px] font-bold text-[#3D6B4A] uppercase tracking-[0.1em]">
                 侦探结论
               </p>
               {!isAnalyzing && (
                 <button
                   id="reanalyze"
-                  className="ml-auto text-xs text-green-primary font-semibold hover:opacity-70 transition-opacity"
+                  className="ml-auto text-[11px] text-[#4A7C59] font-bold hover:opacity-70 transition-opacity"
                   onClick={() => {
                     aiTriggeredRef.current = '';
                     runAnalysis();
@@ -309,14 +311,14 @@ export function TodayTab() {
             </div>
 
             {isAnalyzing ? (
-              <div className="flex items-center gap-2 py-1">
+              <div className="flex items-center gap-2.5 py-1">
                 <span className="loading-dot" />
                 <span className="loading-dot" />
                 <span className="loading-dot" />
-                <span className="text-sm text-ink-secondary ml-1">正在分析...</span>
+                <span className="text-[13px] text-[#6B6560] ml-1">正在分析...</span>
               </div>
             ) : (
-              <p className="text-sm font-semibold text-ink leading-relaxed">
+              <p className="text-[13px] font-semibold text-[#2D2D2D] leading-relaxed">
                 {today.aiConclusion ?? '记录完成后自动分析'}
               </p>
             )}
